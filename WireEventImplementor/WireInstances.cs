@@ -1,4 +1,5 @@
-﻿using Grasshopper.GUI.Canvas;
+﻿using Grasshopper;
+using Grasshopper.GUI.Canvas;
 using Grasshopper.GUI.Canvas.Interaction;
 using Grasshopper.Kernel;
 using System;
@@ -33,6 +34,23 @@ namespace WireEventImplementor
 
         private static TaskCompletionSource<WireStatus> m_source = new TaskCompletionSource<WireStatus>();
 
+        public static void OnWiring(WireStatus wireStatus)
+        {
+            Wiring?.Invoke(wireStatus);
+        }
+
+        public static void OnPreWired(WireStatus wireStatus)
+        {
+            PreWired?.Invoke(wireStatus);
+        }
+
+        public static void OnPostWired(WireStatus wireStatus)
+        {
+            PostWired?.Invoke(wireStatus);
+            if (Instances.ActiveCanvas.ActiveInteraction is GH_WireInteraction)
+                Instances.ActiveCanvas.ActiveInteraction = null;
+        }
+
         /// <summary>
         /// Call when canvas created.
         /// </summary>
@@ -54,10 +72,10 @@ namespace WireEventImplementor
                     m_source = new TaskCompletionSource<WireStatus>();
 
                     if (status.WireTarget == null)
-                        Wiring?.Invoke(status);
+                        OnWiring(status);
                     else
                     {
-                        PreWired?.Invoke(status);
+                        OnPreWired(status);
                         m_source.SetResult(status);
                     }
                 }
@@ -71,7 +89,7 @@ namespace WireEventImplementor
             WireStatus status = await m_source.Task;
             m_source = new TaskCompletionSource<WireStatus>();
 
-            PostWired?.Invoke(status);
+            OnPostWired(status);
 
             (sender as GH_Canvas).Refresh();
         }
